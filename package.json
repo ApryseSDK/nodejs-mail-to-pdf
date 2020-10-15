@@ -1,0 +1,16 @@
+{
+  "name": "pdftron-mail-to-pdf",
+  "version": "1.0.0",
+  "description": "Convert EML, MSG to a PDF with all attachments.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Andrey Safonov",
+  "license": "ISC",
+  "dependencies": {
+    "@pdftron/pdfnet-node": "^8.0.0",
+    "mailparser": "^3.0.0"
+  }
+}
