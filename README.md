@@ -1,4 +1,4 @@
-# pdftron-mail-to-pdf
+# nodejs-mail-to-pdf
 Convert emails EML to a PDF with all attachments. The library uses [Mailparser by Nodemailer](https://nodemailer.com/extras/mailparser/) for parsing emails, and [PDFTron SDK](https://www.pdftron.com/documentation/nodejs) for conversion from HTML to a PDF, image to PDF and MS Office to PDF. 
 
 ## Install
