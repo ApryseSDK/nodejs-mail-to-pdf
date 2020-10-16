@@ -1,5 +1,5 @@
 # pdftron-mail-to-pdf
-Convert emails EML, MSG to a PDF with all attachments. The library uses [Mailparser by Nodemailer](https://nodemailer.com/extras/mailparser/) for parsing emails, and PDFTron SDK for conversion from HTML to a PDF, image to PDF and MS Office to PDF. 
+Convert emails EML, MSG to a PDF with all attachments. The library uses [Mailparser by Nodemailer](https://nodemailer.com/extras/mailparser/) for parsing emails, and [PDFTron SDK](https://www.pdftron.com/documentation/nodejs) for conversion from HTML to a PDF, image to PDF and MS Office to PDF. 
 
 ## Install
 ```
@@ -30,7 +30,7 @@ files/            - sample emails and resulting converted PDF
 
 ## API documentation
 
-See [API documentation](https://www.pdftron.com/documentation/web/guides/ui/apis).
+See [API documentation](https://www.pdftron.com/documentation/nodejs/get-started/).
 
 ## Contributing
 
