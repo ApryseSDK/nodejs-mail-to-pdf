@@ -12,6 +12,8 @@ const OFFICE_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 ];
 
+let docArray = [];
+
 const convertEmailToPDF = pathToEmail => {
   fs.readFile(path.resolve(__dirname, pathToEmail), function (err, data) {
     simpleParser(data, {}, (err, parsed) => {
@@ -28,12 +30,15 @@ const convertEmailToPDF = pathToEmail => {
 
       // create PDFs for each of the attachments
       if (parsed.attachments && parsed.attachments.length > 0) {
-        parsed.attachments.forEach(async (attachment, i) => {
-          const name = `converted_attachment${i}`;
+        parsed.attachments.forEach((attachment, i) => {
+          let name = `converted_attachment${i}`;
           if (attachment.contentType === 'application/pdf') {
             createPDFAttachment(attachment.content, name);
           } else if (OFFICE_MIME_TYPES.includes(attachment.contentType)) {
             convertFromOffice(attachment.content, name);
+          } else if (attachment.contentType.startsWith('image')) {
+            let ext = attachment.filename.split('.')[1];
+            convertImageToPDF(attachment.content, name, ext);
           }
         });
       }
@@ -47,7 +52,7 @@ const convertHTMLToPDF = (html, filename) => {
       await PDFNet.HTML2PDF.setModulePath(
         path.resolve(__dirname, './node_modules/@pdftron/pdfnet-node/lib/'),
       );
-      const outputPath = path.resolve(__dirname, `./files/${filename}.pdf`);
+      const outputPath = path.resolve(__dirname, `./files/tmp/${filename}.pdf`);
       const html2pdf = await PDFNet.HTML2PDF.create();
       const pdfdoc = await PDFNet.PDFDoc.create();
       await html2pdf.insertFromHtmlString(html);
@@ -64,7 +69,7 @@ const convertHTMLToPDF = (html, filename) => {
 const createPDFAttachment = (buffer, filename) => {
   const main = async () => {
     try {
-      const outputPath = path.resolve(__dirname, `./files/${filename}.pdf`);
+      const outputPath = path.resolve(__dirname, `./files/tmp/${filename}.pdf`);
       const pdfdoc = await PDFNet.PDFDoc.createFromBuffer(buffer);
       await pdfdoc.save(outputPath, PDFNet.SDFDoc.SaveOptions.e_linearized);
     } catch (err) {
@@ -76,18 +81,83 @@ const createPDFAttachment = (buffer, filename) => {
 };
 
 const convertFromOffice = (buffer, filename) => {
-    const main = async () => {
-      try {
-        const outputPath = path.resolve(__dirname, `./files/${filename}.pdf`);
-        const pdfdoc = await PDFNet.PDFDoc.createFromBuffer(buffer);
-        await pdfdoc.save(outputPath, PDFNet.SDFDoc.SaveOptions.e_linearized);
-      } catch (err) {
-        console.log(err);
-      }
-    };
-  
-    PDFNetEndpoint(main);
+  const main = async () => {
+    try {
+      const outputPath = path.resolve(__dirname, `./files/tmp/${filename}.pdf`);
+      const data = await PDFNet.Convert.office2PDFBuffer(buffer);
+      const pdfdoc = await PDFNet.PDFDoc.createFromBuffer(data);
+      await pdfdoc.save(outputPath, PDFNet.SDFDoc.SaveOptions.e_linearized);
+    } catch (err) {
+      console.log(err);
+    }
   };
+
+  PDFNetEndpoint(main);
+};
+
+const convertImageToPDF = async (buffer, filename, ext) => {
+  const main = async () => {
+    try {
+      await fs.writeFile(
+        path.resolve(__dirname, `./files/tmp/img/${filename}.${ext}`),
+        buffer,
+        err => {
+          if (err) throw err;
+        },
+      );
+
+      const inputPath = path.resolve(
+        __dirname,
+        `./files/tmp/img/${filename}.${ext}`,
+      );
+      const outputPath = path.resolve(__dirname, `./files/tmp/${filename}.pdf`);
+
+      const pdfdoc = await PDFNet.PDFDoc.create();
+      await PDFNet.Convert.toPdf(pdfdoc, inputPath);
+      await pdfdoc.save(outputPath, PDFNet.SDFDoc.SaveOptions.e_linearized);
+      // delete temp image file
+      fs.unlinkSync(path.resolve(__dirname, `./files/tmp/img/${filename}.${ext}`));
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  PDFNetEndpoint(main);
+};
+
+const mergePDFs = async () => {
+  const main = async () => {
+    try {
+      const directoryPath = path.resolve(__dirname, './files/tmp/');
+      fs.readdir(directoryPath, async function (err, files) {
+        if (err) {
+            return console.log('Unable to scan directory: ' + err);
+        }
+      
+        const newDoc = await PDFNet.PDFDoc.create();
+        for (let i = 0; i <= files.length; i++) {
+          const file = files[i];
+          if (file.split('.')[1] === 'pdf') {
+            const currDoc = await PDFNet.PDFDoc.createFromFilePath(path.resolve(__dirname, `./files/tmp/${file}`))
+            const currDocPageCount = await currDoc.getPageCount();
+            console.log(currDocPageCount);
+            console.log(newDocPageCount);
+            await newDoc.insertPages(newDocPageCount, currDoc, 1, currDocPageCount, PDFNet.PDFDoc.InsertFlag.e_none);
+          }
+        }
+      
+        await newDoc.save(
+          path.resolve(__dirname, `./files/converted.pdf`),
+          PDFNet.SDFDoc.SaveOptions.e_linearized,
+        );
+      });  
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  PDFNetEndpoint(main);
+};
 
 const PDFNetEndpoint = main => {
   PDFNet.runWithCleanup(main) // you can add the key to PDFNet.runWithCleanup(main, process.env.PDFTRONKEY)
@@ -99,4 +169,6 @@ const PDFNetEndpoint = main => {
     });
 };
 
-convertEmailToPDF('./files/test2attachment.eml');
+convertEmailToPDF('./files/test3multiattach.eml');
+// after all emails have been converted you can call to merge them
+setTimeout(mergePDFs, 5000);
