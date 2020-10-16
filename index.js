@@ -12,8 +12,6 @@ const OFFICE_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 ];
 
-let docArray = [];
-
 const convertEmailToPDF = pathToEmail => {
   fs.readFile(path.resolve(__dirname, pathToEmail), function (err, data) {
     simpleParser(data, {}, (err, parsed) => {
@@ -116,7 +114,9 @@ const convertImageToPDF = async (buffer, filename, ext) => {
       await PDFNet.Convert.toPdf(pdfdoc, inputPath);
       await pdfdoc.save(outputPath, PDFNet.SDFDoc.SaveOptions.e_linearized);
       // delete temp image file
-      fs.unlinkSync(path.resolve(__dirname, `./files/tmp/img/${filename}.${ext}`));
+      fs.unlinkSync(
+        path.resolve(__dirname, `./files/tmp/img/${filename}.${ext}`),
+      );
     } catch (err) {
       console.log(err);
     }
@@ -125,38 +125,40 @@ const convertImageToPDF = async (buffer, filename, ext) => {
   PDFNetEndpoint(main);
 };
 
-const mergePDFs = async () => {
-  const main = async () => {
-    try {
-      const directoryPath = path.resolve(__dirname, './files/tmp/');
-      fs.readdir(directoryPath, async function (err, files) {
-        if (err) {
-            return console.log('Unable to scan directory: ' + err);
+const mergePDFs = () => {
+  const directoryPath = path.resolve(__dirname, './files/tmp/');
+  fs.readdir(directoryPath, { withFileTypes: true }, async (err, dirents) => {
+    const main = async () => {
+      if (err) {
+        return console.log('Unable to scan directory: ' + err);
+      }
+      const newDoc = await PDFNet.PDFDoc.create();
+      for (let i = 0; i < dirents.length; i++) {
+        const dirent = dirents[i];
+        if (dirent.isFile()) {
+          const file = dirent.name;
+          const currDoc = await PDFNet.PDFDoc.createFromFilePath(
+            path.resolve(__dirname, `./files/tmp/${file}`),
+          );
+          const currDocPageCount = await currDoc.getPageCount();
+          const newDocPageCount = await newDoc.getPageCount();
+          await newDoc.insertPages(
+            newDocPageCount+1,
+            currDoc,
+            1,
+            currDocPageCount,
+            PDFNet.PDFDoc.InsertFlag.e_none,
+          );
         }
-      
-        const newDoc = await PDFNet.PDFDoc.create();
-        for (let i = 0; i <= files.length; i++) {
-          const file = files[i];
-          if (file.split('.')[1] === 'pdf') {
-            const currDoc = await PDFNet.PDFDoc.createFromFilePath(path.resolve(__dirname, `./files/tmp/${file}`))
-            const currDocPageCount = await currDoc.getPageCount();
-            console.log(currDocPageCount);
-            console.log(newDocPageCount);
-            await newDoc.insertPages(newDocPageCount, currDoc, 1, currDocPageCount, PDFNet.PDFDoc.InsertFlag.e_none);
-          }
-        }
-      
-        await newDoc.save(
-          path.resolve(__dirname, `./files/converted.pdf`),
-          PDFNet.SDFDoc.SaveOptions.e_linearized,
-        );
-      });  
-    } catch (err) {
-      console.log(err);
-    }
-  };
+      }
 
-  PDFNetEndpoint(main);
+      await newDoc.save(
+        path.resolve(__dirname, `./files/converted.pdf`),
+        PDFNet.SDFDoc.SaveOptions.e_linearized,
+      );
+    };
+    PDFNetEndpoint(main);
+  });
 };
 
 const PDFNetEndpoint = main => {
@@ -170,5 +172,6 @@ const PDFNetEndpoint = main => {
 };
 
 convertEmailToPDF('./files/test3multiattach.eml');
-// after all emails have been converted you can call to merge them
+// optionally after all emails have been converted you can call to merge them
 setTimeout(mergePDFs, 5000);
+// you can now clean up the files from the tmp location (leave the folder structure same for future conversions)
