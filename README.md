@@ -31,11 +31,3 @@ files/            - sample emails and resulting converted PDF
 ## API documentation
 
 See [API documentation](https://www.pdftron.com/documentation/nodejs/get-started/).
-
-## Contributing
-
-See [contributing](./CONTRIBUTING.md).
-
-## License
-
-See [license](./LICENSE).
