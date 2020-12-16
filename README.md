@@ -25,7 +25,8 @@ There are three test emails included with this sample.
 
 ```
 files/            - sample emails and resulting converted PDF
-  tmp/            - tmp folder needed to write the image to disk
+  tmp/            - tmp folder needed to write the attachments to disk
+    img/          - img folder needed to write the image to disk
 ```
 
 ## API documentation
