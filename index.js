@@ -12,7 +12,7 @@ const OFFICE_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 ];
 
-const convertEmailToPDF = pathToEmail => {
+const convertEmailToPDF = (pathToEmail) => {
   fs.readFile(path.resolve(__dirname, pathToEmail), function (err, data) {
     simpleParser(data, {}, (err, parsed) => {
       const html = `
@@ -48,7 +48,7 @@ const convertHTMLToPDF = (html, filename) => {
   const main = async () => {
     try {
       await PDFNet.HTML2PDF.setModulePath(
-        path.resolve(__dirname, './node_modules/@pdftron/pdfnet-node/lib/'),
+        path.resolve(__dirname, './node_modules/@pdftron/pdfnet-node/lib/')
       );
       const outputPath = path.resolve(__dirname, `./files/tmp/${filename}.pdf`);
       const html2pdf = await PDFNet.HTML2PDF.create();
@@ -99,14 +99,14 @@ const convertImageToPDF = async (buffer, filename, ext) => {
       await fs.writeFile(
         path.resolve(__dirname, `./files/tmp/img/${filename}.${ext}`),
         buffer,
-        err => {
+        (err) => {
           if (err) throw err;
-        },
+        }
       );
 
       const inputPath = path.resolve(
         __dirname,
-        `./files/tmp/img/${filename}.${ext}`,
+        `./files/tmp/img/${filename}.${ext}`
       );
       const outputPath = path.resolve(__dirname, `./files/tmp/${filename}.pdf`);
 
@@ -115,7 +115,7 @@ const convertImageToPDF = async (buffer, filename, ext) => {
       await pdfdoc.save(outputPath, PDFNet.SDFDoc.SaveOptions.e_linearized);
       // delete temp image file
       fs.unlinkSync(
-        path.resolve(__dirname, `./files/tmp/img/${filename}.${ext}`),
+        path.resolve(__dirname, `./files/tmp/img/${filename}.${ext}`)
       );
     } catch (err) {
       console.log(err);
@@ -137,36 +137,39 @@ const mergePDFs = () => {
         const dirent = dirents[i];
         if (dirent.isFile()) {
           const file = dirent.name;
-          const currDoc = await PDFNet.PDFDoc.createFromFilePath(
-            path.resolve(__dirname, `./files/tmp/${file}`),
-          );
-          const currDocPageCount = await currDoc.getPageCount();
-          const newDocPageCount = await newDoc.getPageCount();
-          await newDoc.insertPages(
-            newDocPageCount+1,
-            currDoc,
-            1,
-            currDocPageCount,
-            PDFNet.PDFDoc.InsertFlag.e_none,
-          );
+          const extension = file.split('.')[1];
+          if (extension === 'pdf') {
+            const currDoc = await PDFNet.PDFDoc.createFromFilePath(
+              path.resolve(__dirname, `./files/tmp/${file}`)
+            );
+            const currDocPageCount = await currDoc.getPageCount();
+            const newDocPageCount = await newDoc.getPageCount();
+            await newDoc.insertPages(
+              newDocPageCount + 1,
+              currDoc,
+              1,
+              currDocPageCount,
+              PDFNet.PDFDoc.InsertFlag.e_none
+            );
+          }
         }
       }
 
       await newDoc.save(
         path.resolve(__dirname, `./files/converted.pdf`),
-        PDFNet.SDFDoc.SaveOptions.e_linearized,
+        PDFNet.SDFDoc.SaveOptions.e_linearized
       );
     };
     PDFNetEndpoint(main);
   });
 };
 
-const PDFNetEndpoint = main => {
+const PDFNetEndpoint = (main) => {
   PDFNet.runWithCleanup(main) // you can add the key to PDFNet.runWithCleanup(main, process.env.PDFTRONKEY)
     .then(() => {
       PDFNet.shutdown();
     })
-    .catch(err => {
+    .catch((err) => {
       console.log(err);
     });
 };
